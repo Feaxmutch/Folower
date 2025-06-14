@@ -15,7 +15,7 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
-        _movement.move(_inputHandler.InputDirection);
+        _movement.Move(_inputHandler.InputDirection);
 
     }
 

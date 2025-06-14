@@ -15,6 +15,11 @@ public class RigidbodyMovement : MonoBehaviour
     private Vector2 _moveDirection;
     private bool _isJump;
     private List<Vector3> _groundNormals;
+    private float _groundNormalYLimit = 0.7f;
+    private float _minStepHeight = 0.3f;
+    private float _maxStepHeight = 0.9f;
+    private Vector3 _lastVelocity;
+    private float _stairStepOffset = 0.1f;
 
     private void Awake()
     {
@@ -26,27 +31,69 @@ public class RigidbodyMovement : MonoBehaviour
     {
         ApplyForces();
         _groundNormals.Clear();
+        _lastVelocity = _rigidbody.velocity;
     }
 
+    private void OnCollisionEnter(Collision collision)
+    {
+
+        var potencialStairContacts = collision.contacts.Where(contact => contact.normal.y < _groundNormalYLimit);
+
+        if (potencialStairContacts.Count() == 0)
+        {
+            return;
+        }
+
+        ContactPoint stairPoint = potencialStairContacts.OrderByDescending(contact => contact.point.y).First();
+        Vector3 footPosition = GetFootPosition();
+
+        if (stairPoint.point.y < footPosition.y + _maxStepHeight == false)
+        {
+            return;
+        }
+
+        Debug.Log(_lastVelocity);
+        Vector3 forwardRayOrigin = new(stairPoint.point.x, footPosition.y + _maxStepHeight, stairPoint.point.z);
+        Vector3 horisontalVelocity = new(_lastVelocity.x, 0, _lastVelocity.z);
+        Ray forwardRay = new(forwardRayOrigin, horisontalVelocity.normalized);
+        float colliderHeight = GetAverageColliderHeight();
+        float halfHeight = colliderHeight / 2;
+
+        if (Physics.Raycast(forwardRay, out RaycastHit testHit, halfHeight + _stairStepOffset))
+        {
+            Debug.DrawRay(forwardRayOrigin, horisontalVelocity.normalized * (halfHeight + _stairStepOffset), Color.red, 30);
+            return;
+        }
+
+        Debug.DrawRay(forwardRayOrigin, horisontalVelocity.normalized * (halfHeight + _stairStepOffset), Color.green, 30);
+
+        Vector3 downwardsRayOrigin = forwardRayOrigin + (horisontalVelocity.normalized * _stairStepOffset);
+        Ray downwardsRay = new(downwardsRayOrigin, Vector3.down);
+
+        if (Physics.Raycast(downwardsRay, out RaycastHit hit,_maxStepHeight - _minStepHeight) == false)
+        {
+            Debug.DrawRay(downwardsRayOrigin, Vector3.down * (_maxStepHeight - _minStepHeight), Color.red, 30);
+            return;
+        }
+
+        Debug.DrawRay(downwardsRayOrigin, Vector3.down * (_maxStepHeight - _minStepHeight), Color.green, 30);
+
+        transform.position = hit.point + (Vector3.up * _mainCollider.bounds.extents.y);
+    }
 
     private void OnCollisionStay(Collision collision)
     {
-        //var contacts = collision.contacts;
-        //Vector3 footPosition = GetFootPosition();
-        //var contactsForStairs = contacts.Where(contact => contact.point.y > footPosition.y + 0.1f && contact.point.y < footPosition.y + 1);
-
-        //if (contactsForStairs.Count() > 0)
-        //{
-        //    Vector3 highestPosition = contactsForStairs.Select(contact => contact.point).OrderByDescending(point => point.y).First();
-        //    transform.position = new Vector3(highestPosition.x, highestPosition.y + _mainCollider.bounds.extents.y, highestPosition.z);
-        //}
-
-        _groundNormals.AddRange(collision.contacts.Select(contact => contact.normal).Where(normal => normal.y >= 0.6f).ToList());
+        _groundNormals.AddRange(collision.contacts.Where(contact => contact.normal.y >= _groundNormalYLimit).Select(contact => contact.normal).ToList());
     }
 
-    public void move(Vector2 direction)
+    public void Move(Vector2 direction)
     {
         _moveDirection = direction.normalized;
+    }
+
+    public void Stop()
+    {
+        _moveDirection = Vector2.zero;
     }
 
     public void Jump()
@@ -111,5 +158,12 @@ public class RigidbodyMovement : MonoBehaviour
     {
         float footY = transform.position.y - _mainCollider.bounds.extents.y;
         return new Vector3(transform.position.x, footY, transform.position.z);
+    }
+
+    private float GetAverageColliderHeight()
+    {
+        int axesCount = 2;
+        Vector3 size = _mainCollider.bounds.size;
+        return (size.x + size.z) / axesCount;
     }
 }
