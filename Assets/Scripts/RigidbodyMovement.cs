@@ -1,7 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine.InputSystem.HID;
 
 [RequireComponent(typeof(Rigidbody))]
 public class RigidbodyMovement : Movement
@@ -24,7 +23,7 @@ public class RigidbodyMovement : Movement
 
     private void OnCollisionStay(Collision collision)
     {
-        _groundNormals.AddRange(collision.contacts.Where(contact => contact.normal.y >= GroundNormalYLimit).Select(contact => contact.normal).ToList());
+        _groundNormals.AddRange(collision.contacts.Where(contact => contact.normal.y >= _groundNormalYLimit).Select(contact => contact.normal).ToList());
     }
 
     private void ApplyForces()

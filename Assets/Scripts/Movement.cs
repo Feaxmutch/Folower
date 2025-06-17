@@ -1,20 +1,16 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
-public class Movement : MonoBehaviour
+public abstract class Movement : MonoBehaviour
 {
     [SerializeField] private float _speed;
     [SerializeField] private float _gravityMultiplyer;
     [SerializeField] private Collider _mainCollider;
+    [SerializeField] protected float _groundNormalYLimit = 0.7f;
     [SerializeField] private float _minStepHeight = 0.3f;
     [SerializeField] private float _maxStepHeight = 0.9f;
     [SerializeField] private float _stairStepOffset = 0.1f;
 
     protected Vector3 LastVelocity { get; set; }
-
-    protected float GroundNormalYLimit => 0.7f;
 
     protected Vector2 MoveDirection { get; private set; }
 
@@ -38,17 +34,24 @@ public class Movement : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (CanStepToStair(out Vector3 stepPosition))
-        {
-            transform.position = stepPosition + (Vector3.up * _mainCollider.bounds.extents.y);
-        }
+        TryStepToStair();
     }
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        if (CanStepToStair(out Vector3 stepPosition))
+        TryStepToStair();
+    }
+
+    private void OnValidate()
+    {
+        if (_minStepHeight < (float)default)
         {
-            transform.position = stepPosition + (Vector3.up * _mainCollider.bounds.extents.y);
+            _minStepHeight = default;
+        }
+
+        if (_minStepHeight > _maxStepHeight)
+        {
+            _maxStepHeight = _minStepHeight;
         }
     }
 
@@ -108,5 +111,13 @@ public class Movement : MonoBehaviour
         int axesCount = 2;
         Vector3 size = _mainCollider.bounds.size;
         return (size.x + size.z) / axesCount;
+    }
+
+    private void TryStepToStair()
+    {
+        if (CanStepToStair(out Vector3 stepPosition))
+        {
+            transform.position = stepPosition + (Vector3.up * _mainCollider.bounds.extents.y);
+        }
     }
 }

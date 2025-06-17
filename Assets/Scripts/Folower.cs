@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Movement))]
@@ -26,7 +23,7 @@ public class Folower : MonoBehaviour
         {
             moveDirection = Vector3.zero;
         }
-
+        
         if (distance > _maxDistance)
         {
             moveDirection = transform.rotation * (transform.position - _target.transform.position);
