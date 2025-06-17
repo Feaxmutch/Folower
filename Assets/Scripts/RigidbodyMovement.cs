@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
+using UnityEngine.InputSystem.HID;
 
 [RequireComponent(typeof(Rigidbody))]
 public class RigidbodyMovement : MonoBehaviour
@@ -36,49 +36,10 @@ public class RigidbodyMovement : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-
-        var potencialStairContacts = collision.contacts.Where(contact => contact.normal.y < _groundNormalYLimit);
-
-        if (potencialStairContacts.Count() == 0)
+        if (CanStepToStair(collision.contacts, out Vector3 stepPosition))
         {
-            return;
+            transform.position = stepPosition + (Vector3.up * _mainCollider.bounds.extents.y);
         }
-
-        ContactPoint stairPoint = potencialStairContacts.OrderByDescending(contact => contact.point.y).First();
-        Vector3 footPosition = GetFootPosition();
-
-        if (stairPoint.point.y < footPosition.y + _maxStepHeight == false)
-        {
-            return;
-        }
-
-        Debug.Log(_lastVelocity);
-        Vector3 forwardRayOrigin = new(stairPoint.point.x, footPosition.y + _maxStepHeight, stairPoint.point.z);
-        Vector3 horisontalVelocity = new(_lastVelocity.x, 0, _lastVelocity.z);
-        Ray forwardRay = new(forwardRayOrigin, horisontalVelocity.normalized);
-        float colliderHeight = GetAverageColliderHeight();
-        float halfHeight = colliderHeight / 2;
-
-        if (Physics.Raycast(forwardRay, out RaycastHit testHit, halfHeight + _stairStepOffset))
-        {
-            Debug.DrawRay(forwardRayOrigin, horisontalVelocity.normalized * (halfHeight + _stairStepOffset), Color.red, 30);
-            return;
-        }
-
-        Debug.DrawRay(forwardRayOrigin, horisontalVelocity.normalized * (halfHeight + _stairStepOffset), Color.green, 30);
-
-        Vector3 downwardsRayOrigin = forwardRayOrigin + (horisontalVelocity.normalized * _stairStepOffset);
-        Ray downwardsRay = new(downwardsRayOrigin, Vector3.down);
-
-        if (Physics.Raycast(downwardsRay, out RaycastHit hit,_maxStepHeight - _minStepHeight) == false)
-        {
-            Debug.DrawRay(downwardsRayOrigin, Vector3.down * (_maxStepHeight - _minStepHeight), Color.red, 30);
-            return;
-        }
-
-        Debug.DrawRay(downwardsRayOrigin, Vector3.down * (_maxStepHeight - _minStepHeight), Color.green, 30);
-
-        transform.position = hit.point + (Vector3.up * _mainCollider.bounds.extents.y);
     }
 
     private void OnCollisionStay(Collision collision)
@@ -103,7 +64,7 @@ public class RigidbodyMovement : MonoBehaviour
 
     private void ApplyForces()
     {
-        Vector3 gravityVelocity = Vector3.up * Physics.gravity.y * _gravityMultiplyer;
+        Vector3 gravityVelocity = Physics.gravity * _gravityMultiplyer;
         _rigidbody.AddForce(RotateByGround(gravityVelocity), ForceMode.Acceleration);
 
         if (IsOnGround())
@@ -152,6 +113,40 @@ public class RigidbodyMovement : MonoBehaviour
     private bool IsOnGround()
     {
         return _groundNormals.Count > 0;
+    }
+
+    private bool CanStepToStair(ContactPoint[] contacts, out Vector3 stepPosition)
+    {
+        if (contacts.Any(contact => contact.normal.y < _groundNormalYLimit) == false)
+        {
+            stepPosition = Vector3.zero;
+            return false;
+        }
+
+        Vector3 footPosition = GetFootPosition();
+        float colliderHeight = GetAverageColliderHeight();
+        float halfHeight = colliderHeight / 2;
+        Vector3 forwardRayOrigin = footPosition + (Vector3.up * _maxStepHeight);
+        Vector3 horisontalVelocity = new(_lastVelocity.x, 0, _lastVelocity.z);
+        Ray forwardRay = new(forwardRayOrigin, horisontalVelocity.normalized);
+
+        if (Physics.Raycast(forwardRay, out RaycastHit forwardHit, colliderHeight + _stairStepOffset))
+        {
+            stepPosition = Vector3.zero;
+            return false;
+        }
+
+        Vector3 downwardsRayOrigin = forwardRayOrigin + (horisontalVelocity.normalized * (halfHeight + _stairStepOffset));
+        Ray downwardsRay = new(downwardsRayOrigin, Vector3.down);
+
+        if (Physics.Raycast(downwardsRay, out RaycastHit stepHit, _maxStepHeight - _minStepHeight) == false)
+        {
+            stepPosition = Vector3.zero;
+            return false;
+        }
+
+        stepPosition = stepHit.point;
+        return true;
     }
 
     private Vector3 GetFootPosition()
