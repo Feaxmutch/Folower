@@ -3,18 +3,18 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(RigidbodyMovement))]
+[RequireComponent(typeof(Movement))]
 public class Folower : MonoBehaviour
 {
     [SerializeField] private float _maxDistance;
     [SerializeField] private float _minDistance;
     [SerializeField] private Player _target;
 
-    private RigidbodyMovement _movement;
+    private Movement _movement;
 
     private void Awake()
     {
-        _movement = GetComponent<RigidbodyMovement>();
+        _movement = GetComponent<Movement>();
     }
 
     private void Update()

@@ -1,31 +1,21 @@
 using UnityEngine;
 
 [RequireComponent(typeof(PlayerInputHandler))]
-[RequireComponent(typeof(RigidbodyMovement))]
+[RequireComponent(typeof(Movement))]
 public class Player : MonoBehaviour
 {
     private PlayerInputHandler _inputHandler;
-    private RigidbodyMovement _movement;
+    private Movement _movement;
 
     private void Awake()
     {
         _inputHandler = GetComponent<PlayerInputHandler>();
-        _movement = GetComponent<RigidbodyMovement>();
+        _movement = GetComponent<Movement>();
     }
 
     private void Update()
     {
         _movement.Move(_inputHandler.InputDirection);
 
-    }
-
-    private void OnEnable()
-    {
-        _inputHandler.Jumped += _movement.Jump;
-    }
-
-    private void OnDisable()
-    {
-        _inputHandler.Jumped -= _movement.Jump;
     }
 }
