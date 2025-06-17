@@ -19,7 +19,6 @@ public class PlayerInputHandler : MonoBehaviour
     {
         _playerInput.Player.Move.performed += OnMove;
         _playerInput.Player.Move.canceled += OnMove;
-        _playerInput.Player.Jump.started += OnJump;
         _playerInput.Enable();
     }
 
@@ -27,7 +26,6 @@ public class PlayerInputHandler : MonoBehaviour
     {
         _playerInput.Player.Move.performed -= OnMove;
         _playerInput.Player.Move.canceled -= OnMove;
-        _playerInput.Player.Jump.started -= OnJump;
         _playerInput.Disable();
     }
 
